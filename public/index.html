@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>File Upload</title>
+</head>
+<body>
+    <h1>Upload a File and Tempo</h1>
+    <form action="/upload" method="post" enctype="multipart/form-data">
+        <!-- file input -->
+        <label for="myFile">Choose a file:</label>
+        <input type="file" id="myFile" name="myFile" required>
+        
+        <!-- line break -->
+        <br><br> 
+
+        <!-- tempo input -->
+        <label for="tempo">Tempo (BPM):</label>
+        <input type="number" id="tempo" name="tempo" min="40" max="240" required>
+
+        <br><br> 
+
+        <!-- Submit button -->
+        <button type="submit">Upload</button>
+    </form>
+</body>
+</html>

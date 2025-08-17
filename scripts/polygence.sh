@@ -11,7 +11,8 @@ PDF_FILE=$1
 cd ~/Documents/music
 
 # Run Audiveris via Java
-/Applications/Audiveris.app/Contents/MacOS/Audiveris -batch -export "$PDF_FILE"
+java -jar scripts/audiveris.jar -bath -export "$PDF_FILE"
+
 # output final .mxl path to node
 MXL_FILE="${PDF_FILE%.pdf}.mxl"
 # Node can capture

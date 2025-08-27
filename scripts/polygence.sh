@@ -2,6 +2,20 @@
 
 # Flow for input score + audio clip, output sharp/flat + timestamps
 
+# Install Audveris automatically on Render
+AUDIVERIS_URL="https://github.com/Audiveris/audiveris/releases/download/5.6.2/Audiveris-5.6.2-ubuntu22.04-x86_64.deb"
+AUDIVERIS_DEB="/tmp/audiveris.deb"
+
+echo "Checking for Audiveris installation..."
+if ! command -v audiveris &> /dev/null; then
+    echo "Audiveris not found. Installing..."
+    wget -q $AUDIVERIS_URL -O $AUDIVERIS_DEB
+    sudo dpkg -i $AUDIVERIS_DEB || sudo apt-get install -f -y
+    echo "Audiveris installed."
+else
+    echo "Audiveris already installed."
+fi
+
 # Get arguments (user inputs: uploaded file path, tempo number)
 PDF_FILE=$1
 

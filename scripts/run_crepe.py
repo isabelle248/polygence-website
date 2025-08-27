@@ -10,10 +10,8 @@ from music21 import converter
 import sys
 
 mxl_file = sys.argv[1]
-tempo = int(sys.argv[2])
-
-# Set path to audio file
-audio_path = "/Users/isabellelin/Documents/polygence_code/hot-cross-buns.wav" #replace w/ path to audio file
+audio_path = sys.argv[2]
+tempo = int(sys.argv[3])
 
 # Load audio with librosa
 # reads audio file from disk, resamples to 16,000 hz
@@ -79,6 +77,7 @@ filtered_freq = adjusted_freq[adjusted_conf > threshold]
 # score (object, hierarchical) contains Parts (instruments/voices)
 # each Part contains Measures
 # each Measure contains Notes or Rests
+print(mxl_file)
 score = converter.parse(mxl_file)
 
 # flatten hierarchical structure into a simple sequence (?)
@@ -123,19 +122,19 @@ print(combined_freq)
 
 
 
-#TEST - Plot differences over time
-plt.figure(figsize=(14,6))
+# #TEST - Plot differences over time
+# plt.figure(figsize=(14,6))
 
-plt.plot(combined_time, combined_freq, label='Frequency difference (Hz)')
+# plt.plot(combined_time, combined_freq, label='Frequency difference (Hz)')
 
-plt.ylabel("Frequency difference (Hz)")
+# plt.ylabel("Frequency difference (Hz)")
 
-# turn on grid lines
-plt.grid(True)
+# # turn on grid lines
+# plt.grid(True)
 
-plt.xlabel("Time (s)")
-plt.grid(True)
-plt.tight_layout()
-plt.savefig('uploads/output2_plot.png')
-# # renders + displays plots created
-# plt.show()
+# plt.xlabel("Time (s)")
+# plt.grid(True)
+# plt.tight_layout()
+# plt.savefig('uploads/output2_plot.png')
+# # # renders + displays plots created
+# # plt.show()

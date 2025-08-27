@@ -2,7 +2,8 @@
 set -e
 
 echo "Installing system dependencies..."
-sudo apt-get update && sudo apt-get install -y openjdk-17-jdk python3 python3-pip unzip
+sudo apt-get update
+sudo apt-get install -y openjdk-17-jdk python3 python3-pip unzip
 
 echo "Installing Python dependencies..."
 pip3 install --upgrade pip

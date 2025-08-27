@@ -24,32 +24,39 @@ const storage = multer.diskStorage({
 });
 
 // Create the Multer upload middleware
-const upload = multer({ storage: storage });
+const upload = multer({ storage: storage }).fields([
+    { name: 'pdfFile', maxCount: 1 },
+    { name: 'audioFile', maxCount: 1 }
+])
 
 // Serve static files from the 'public' folder
 app.use(express.static('public'));
 
 // Route to handle file uploads
-app.post('/upload', upload.single('myFile'), (req, res) => {
+app.post('/upload', upload, (req, res) => {
     const tempo = req.body.tempo;
 
-    if (!req.file) { // if file not uploaded
-       return res.status(400).send('No file uploaded.');
+    if (!req.files || !req.files.pdfFile || !req.files.audioFile) { // if file not uploaded
+       return res.status(400).send('PDF and audio files are required.');
     }
 
     // joins folder and filename into complete file path
-    const pdfPath = path.join(__dirname, 'uploads', req.file.filename);
-    // path to shell script
-    const audiverisScript = path.join(__dirname, 'scripts', 'polygence.sh');
-
+    const pdfPath = path.join(__dirname, 'uploads', req.files.pdfFile[0].filename);
+    const audioPath = path.join(__dirname, 'uploads', req.files.audioFile[0].filename);
+    
     // set headers for live streaming
     res.setHeader('Content-Type', 'text/plain'); // tells browser is plain text
     res.setHeader('Transfer-Encoding', 'chunked'); // stream data in chunks
 
     // confirm what file/tempo user inputted
-    res.write(`File uploaded: ${req.file.filename}\nTempo: ${tempo}\n\n`);
+    res.write(`PDF uploaded: ${req.files.pdfFile[0].filename}\n`);
+    res.write(`Audio uploaded: ${req.files.audioFile[0].filename}\n`);
+    res.write(`Tempo: ${tempo}\n\n`);
+
 
     // Run Audiveris
+    // path to shell script
+    const audiverisScript = path.join(__dirname, 'scripts', 'polygence.sh');
     // run shell script with arguments ($1 = pdf file path)
     const audiverisProcess = spawn('bash', [audiverisScript, pdfPath])
 
@@ -57,44 +64,64 @@ app.post('/upload', upload.single('myFile'), (req, res) => {
 
     // stream standard output of shell script to browser
     audiverisProcess.stdout.on('data', (data) => {
-        const text = data.toString();
-        res.write(text);
+        const output = data.toString();
+        res.write(output);
+
 
         // Capture last line containing .mxl file path
-        const match = text.match(/Generated MXL: (.+\.mxl)/);
+        // check if match[1] is absolute
+        const match = output.match(/Generated MXL:\s*(.*)/);
+        let filePath = match[1].trim();
         if (match) {
-            mxlFilePath = match[1].trim();
+            // debug
+            console.log("DEBUG: raw match ->", match[1]);
+
+            let filePath = match[1].trim();
+
+            // if audiveris gave a relative path, make it absolute
+            if (!path.isAbsolute(filePath)) {
+                filePath = path.join(__dirname, filePath);
+            }
+        
+            mxlFilePath = filePath;
+            res.write(`\nDetected MXL file: ${mxlFilePath}\n`);
         }
-    })
+    });
 
     // stream error messages from script to browser
     audiverisProcess.stderr.on('data', (data) => {
-        res.write(`ERROR: ${data.toString()}`);
+        res.write(`Audiveris ERROR: ${data.toString()}`);
     });
 
     // close response when script finishes
     audiverisProcess.on('close', (code) => {
-        res.write(`\nProcess exited with code ${code}\n`);
+        res.write(`\nAudiveris exited with code ${code}\n`);
 
         if (!mxlFilePath) {
-            res.write('No file detected, stopping. \n');
+            res.write('No MXL file detected, stopping. \n');
+            return res.end();
+        }
+
+        const fs = require('fs');
+        if (!fs.existsSync(mxlFilePath)) {
+            res.write(`ERROR: MXL file not found at ${mxlFilePath}\n`);
             return res.end();
         }
 
         res.write('\n--- Python CREPE Output ---\n');
         
         // Run python
-        const pythonProcess = spawn('python3', ['/Users/isabellelin/Documents/polygence_code/scripts/run_crepe.py', mxlFilePath, tempo]);
+        const pythonScript = path.join(__dirname, 'scripts', 'run_crepe.py')
+        const pythonProcess = spawn('python3', [pythonScript, mxlFilePath, audioPath, tempo]);
 
         pythonProcess.stdout.on('data', (data) => res.write(data.toString()));
         pythonProcess.stderr.on('data', (data) => res.write(`Python ERROR: ${data.toString()}`));
+        
         pythonProcess.on('close', (pCode) => {
             res.write(`\nPython script exited with code ${pCode}\n`);
             res.end();
         })
     });
-
-
 });
 
 // Start the server

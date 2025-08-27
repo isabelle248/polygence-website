@@ -1,5 +1,0 @@
-crepe
-librosa
-numpy
-matplotlib
-music21

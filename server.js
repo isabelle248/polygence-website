@@ -40,7 +40,7 @@ app.post('/upload', upload.single('myFile'), (req, res) => {
     // joins folder and filename into complete file path
     const pdfPath = path.join(__dirname, 'uploads', req.file.filename);
     // path to shell script
-    const audiverisScript = path.join(__dirname, 'polygence.sh');
+    const audiverisScript = path.join(__dirname, 'scripts', 'polygence.sh');
 
     // set headers for live streaming
     res.setHeader('Content-Type', 'text/plain'); // tells browser is plain text

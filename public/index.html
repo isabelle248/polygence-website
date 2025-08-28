@@ -9,10 +9,13 @@
     <h1>Upload a File and Tempo</h1>
     <form action="/upload" method="post" enctype="multipart/form-data">
         <!-- file input -->
-        <label for="myFile">Choose a file:</label>
-        <input type="file" id="myFile" name="myFile" required>
-        
-        <!-- line break -->
+        <label for="pdfFile">Choose a PDF File:</label>
+        <input type="file" id="pdfFile" name="pdfFile" accept=".pdf" required>
+        <br><br> 
+
+        <!-- audio input -->
+        <label for="audioFile">Choose an audio file:</label>
+        <input type="file" id="audioFile" name="audioFile" accept="audio/*" required>
         <br><br> 
 
         <!-- tempo input -->

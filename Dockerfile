@@ -17,7 +17,7 @@ RUN apt-get update && apt-get install -y \
 
 # 4. Download and install Audiveris .deb package
 RUN wget https://github.com/Audiveris/audiveris/releases/download/5.6.2/Audiveris-5.6.2-ubuntu22.04-x86_64.deb \
-    && dpkg -i Audiveris-5.6.2-ubuntu22.04-x86_64.deb || apt-get install -f -y \
+    && apt-get install -y ./Audiveris-5.6.2-ubuntu22.04-x86_64.deb \
     && rm Audiveris-5.6.2-ubuntu22.04-x86_64.deb
 
 # 5. Set working directory

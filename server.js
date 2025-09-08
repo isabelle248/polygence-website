@@ -9,6 +9,10 @@ const { spawn } = require('child_process');
 const app = express();
 const port = 3000;
 
+// EJS setup
+app.set('view engine', 'ejs');
+app.set('views', path.join(__dirname, 'views'));
+
 // middleware to parse text fields from forms
 app.use(express.urlencoded({ extended: true }));
 
@@ -52,77 +56,76 @@ app.post('/upload', upload, (req, res) => {
     res.write(`PDF uploaded: ${req.files.pdfFile[0].filename}\n`);
     res.write(`Audio uploaded: ${req.files.audioFile[0].filename}\n`);
     res.write(`Tempo: ${tempo}\n\n`);
-
-
-    // Run Audiveris
-    // path to shell script
-    const audiverisScript = path.join(__dirname, 'scripts', 'polygence.sh');
-    // run shell script with arguments ($1 = pdf file path)
-    const audiverisProcess = spawn('bash', [audiverisScript, pdfPath])
-
-    let mxlFilePath = '';
-
-    // stream standard output of shell script to browser
-    audiverisProcess.stdout.on('data', (data) => {
-        const output = data.toString();
-        res.write(output);
-
-
-        // Capture last line containing .mxl file path
-        // check if match[1] is absolute
-        const match = output.match(/Generated MXL:\s*(.*)/);
-        let filePath = match[1].trim();
-        if (match) {
-            // debug
-            console.log("DEBUG: raw match ->", match[1]);
-
-            let filePath = match[1].trim();
-
-            // if audiveris gave a relative path, make it absolute
-            if (!path.isAbsolute(filePath)) {
-                filePath = path.join(__dirname, filePath);
-            }
-        
-            mxlFilePath = filePath;
-            res.write(`\nDetected MXL file: ${mxlFilePath}\n`);
-        }
-    });
-
-    // stream error messages from script to browser
-    audiverisProcess.stderr.on('data', (data) => {
-        res.write(`Audiveris ERROR: ${data.toString()}`);
-    });
-
-    // close response when script finishes
-    audiverisProcess.on('close', (code) => {
-        res.write(`\nAudiveris exited with code ${code}\n`);
-
-        if (!mxlFilePath) {
-            res.write('No MXL file detected, stopping. \n');
-            return res.end();
-        }
-
-        const fs = require('fs');
-        if (!fs.existsSync(mxlFilePath)) {
-            res.write(`ERROR: MXL file not found at ${mxlFilePath}\n`);
-            return res.end();
-        }
-
-        res.write('\n--- Python CREPE Output ---\n');
-        
-        // Run python
-        const pythonScript = path.join(__dirname, 'scripts', 'run_crepe.py')
-        const pythonProcess = spawn('python3', [pythonScript, mxlFilePath, audioPath, tempo]);
-
-        pythonProcess.stdout.on('data', (data) => res.write(data.toString()));
-        pythonProcess.stderr.on('data', (data) => res.write(`Python ERROR: ${data.toString()}`));
-        
-        pythonProcess.on('close', (pCode) => {
-            res.write(`\nPython script exited with code ${pCode}\n`);
-            res.end();
-        })
-    });
 });
+
+//     // Run Audiveris
+//     // path to shell script
+//     const audiverisScript = path.join(__dirname, 'scripts', 'polygence.sh');
+//     // run shell script with arguments ($1 = pdf file path)
+//     const audiverisProcess = spawn('bash', [audiverisScript, pdfPath])
+
+//     let mxlFilePath = '';
+
+//     // stream standard output of shell script to browser
+//     audiverisProcess.stdout.on('data', (data) => {
+//         const output = data.toString();
+//         res.write(output);
+
+
+//         // Capture last line containing .mxl file path
+//         // check if match[1] is absolute
+//         const match = output.match(/Generated MXL:\s*(.*)/);
+//         if (match) {
+//             // debug
+//             console.log("DEBUG: raw match ->", match[1]);
+
+//             let filePath = match[1].trim();
+
+//             // if audiveris gave a relative path, make it absolute
+//             if (!path.isAbsolute(filePath)) {
+//                 filePath = path.join(__dirname, filePath);
+//             }
+        
+//             mxlFilePath = filePath;
+//             res.write(`\nDetected MXL file: ${mxlFilePath}\n`);
+//         }
+//     });
+
+//     // stream error messages from script to browser
+//     audiverisProcess.stderr.on('data', (data) => {
+//         res.write(`Audiveris ERROR: ${data.toString()}`);
+//     });
+
+//     // close response when script finishes
+//     audiverisProcess.on('close', (code) => {
+//         res.write(`\nAudiveris exited with code ${code}\n`);
+
+//         if (!mxlFilePath) {
+//             res.write('No MXL file detected, stopping. \n');
+//             return res.end();
+//         }
+
+//         const fs = require('fs');
+//         if (!fs.existsSync(mxlFilePath)) {
+//             res.write(`ERROR: MXL file not found at ${mxlFilePath}\n`);
+//             return res.end();
+//         }
+
+//         res.write('\n--- Python CREPE Output ---\n');
+        
+//         // Run python
+//         const pythonScript = path.join(__dirname, 'scripts', 'run_crepe.py')
+//         const pythonProcess = spawn('python3', [pythonScript, mxlFilePath, audioPath, tempo]);
+
+//         pythonProcess.stdout.on('data', (data) => res.write(data.toString()));
+//         pythonProcess.stderr.on('data', (data) => {console.error("Python STDERR:", data.toString())});
+        
+//         pythonProcess.on('close', (pCode) => {
+//             res.write(`\nPython script exited with code ${pCode}\n`);
+//             res.end();
+//         })
+//     });
+// });
 
 // Start the server
 app.listen(port, () => {

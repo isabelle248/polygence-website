@@ -20,9 +20,9 @@ RUN apt-get update && apt-get install -y \
 WORKDIR /opt
 
 # Download Audiveris
-RUN wget https://github.com/Audiveris/audiveris/releases/download/5.6.2/Audiveris-5.6.2-ubuntu22.04-x86_64.deb \
-    && apt-get install -y ./Audiveris-5.6.2-ubuntu22.04-x86_64.deb \
-    && rm Audiveris-5.6.2-ubuntu22.04-x86_64.deb
+RUN wget https://github.com/Audiveris/audiveris/releases/download/5.6.2/audiveris_5.6.2-1_amd64.deb \
+    && dpkg -i audiveris_5.6.2-1_amd64.deb || apt-get install -f -y \
+    && rm audiveris_5.6.2-1_amd64.deb
 
 # Optional: Download Toprock JAR if you want the API
 WORKDIR /opt/toprock

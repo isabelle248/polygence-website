@@ -1,43 +1,46 @@
-# 1. Use Ubuntu 22.04 as the base image
+# Use Ubuntu 22.04 as base
 FROM ubuntu:22.04
 
-# 2. Avoid prompts during installation
+# Avoid interactive prompts
 ENV DEBIAN_FRONTEND=noninteractive
 
-# 3. Install dependencies: Java, Python, Node, pip, wget, etc.
+# Install system dependencies
 RUN apt-get update && apt-get install -y \
     openjdk-17-jdk \
+    wget \
+    unzip \
+    ffmpeg \
     python3 \
     python3-pip \
     nodejs \
     npm \
-    wget \
-    unzip \
     && rm -rf /var/lib/apt/lists/*
 
-# 4. Download and install Audiveris .deb package
-RUN wget https://github.com/Audiveris/audiveris/releases/download/5.6.2/audiveris_5.6.2-1_amd64.deb \
-    && dpkg -i audiveris_5.6.2-1_amd64.deb || apt-get install -f -y \
-    && rm audiveris_5.6.2-1_amd64.deb
+# Set working directory for Audiveris & Toprock
+WORKDIR /opt
 
-# 5. Set working directory
+# Download Audiveris
+RUN wget https://github.com/Audiveris/audiveris/releases/download/5.6.2/Audiveris-5.6.2-ubuntu22.04-x86_64.deb \
+    && apt-get install -y ./Audiveris-5.6.2-ubuntu22.04-x86_64.deb \
+    && rm Audiveris-5.6.2-ubuntu22.04-x86_64.deb
+
+# Optional: Download Toprock JAR if you want the API
+WORKDIR /opt/toprock
+RUN wget https://github.com/toprock/toprock/releases/download/v1.0/toprock.jar \
+    && chmod +x toprock.jar
+
+# Set working directory for your app
 WORKDIR /app
-
-# 6. Copy Node package files first for caching
-COPY package*.json ./
-RUN npm install
-
-# 7. Copy the rest of the project
 COPY . .
 
-# 8. Install Python dependencies for CREPE & music analysis
-RUN pip3 install --no-cache-dir -r requirements.txt
+# Install Node.js dependencies
+RUN npm install
 
-# 9. Make your shell script executable
-RUN chmod +x scripts/polygence.sh
+# Optional: Install Python dependencies if you have a requirements.txt
+RUN pip3 install --no-cache-dir -r requirements.txt || true
 
-# 10. Expose app port (change if needed)
+# Expose the port your app runs on (adjust if needed)
 EXPOSE 3000
 
-# 11. Start the Node.js app
+# Start your app (adjust command as needed)
 CMD ["npm", "start"]

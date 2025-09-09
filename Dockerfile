@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 
 # Start from Debian base image
-FROM debian:bullseye-slim
+FROM eclipse-temurin:21-jdk
 
 # Install basic dependencies
 RUN apt-get update && apt-get install -y \

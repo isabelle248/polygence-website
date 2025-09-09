@@ -45,7 +45,7 @@ ENV PATH=$JAVA_HOME/bin:$PATH
 RUN git clone --branch development https://github.com/Audiveris/audiveris.git
 
 WORKDIR /audiveris
-RUN ./gradlew build
+RUN ./gradlew build --stacktrace --info
 
 RUN mkdir /audiveris-extract && \
     tar -xvf /audiveris/build/distributions/Audiveris*.tar -C /audiveris-extract && \

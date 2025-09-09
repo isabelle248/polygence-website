@@ -28,18 +28,20 @@ RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
 # ---------------------------------------------------
 # Install Java 17 for Audiveris
 # ---------------------------------------------------
-RUN apt-get update && apt-get install -y openjdk-17-jdk && \
+# Install OpenJDK 21 for Audiveris
+RUN apt-get update && apt-get install -y openjdk-21-jdk && \
     rm -rf /var/lib/apt/lists/*
 
-ENV JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
+# Set Java environment variables
+ENV JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64
 ENV PATH=$JAVA_HOME/bin:$PATH
+
 
 # ---------------------------------------------------
 # Install & Build Audiveris
 # ---------------------------------------------------
-RUN git clone --branch 5.3 https://github.com/Audiveris/audiveris.git && \
+RUN git clone --branch development https://github.com/Audiveris/audiveris.git && \
     cd audiveris && \
-    git checkout tags/5.3 && \
     ./gradlew build && \
     mkdir /audiveris-extract && \
     tar -xvf /audiveris/build/distributions/Audiveris*.tar -C /audiveris-extract && \

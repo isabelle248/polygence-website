@@ -28,12 +28,11 @@ RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
 # ---------------------------------------------------
 # Install Java 17 for Audiveris
 # ---------------------------------------------------
-RUN wget https://download.oracle.com/java/17/latest/jdk-17_linux-x64_bin.deb \
-    && apt install -y ./jdk-17_linux-x64_bin.deb \
-    && rm ./jdk-17_linux-x64_bin.deb
+RUN apt-get update && apt-get install -y openjdk-17-jdk && \
+    rm -rf /var/lib/apt/lists/*
 
-ENV JAVA_HOME=/usr/lib/jvm/jdk-17
-ENV PATH=$PATH:$JAVA_HOME/bin
+ENV JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
+ENV PATH=$JAVA_HOME/bin:$PATH
 
 # ---------------------------------------------------
 # Install & Build Audiveris

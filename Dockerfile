@@ -42,10 +42,12 @@ ENV PATH=$JAVA_HOME/bin:$PATH
 # ---------------------------------------------------
 # Install & Build Audiveris
 # ---------------------------------------------------
-RUN git clone --branch development https://github.com/Audiveris/audiveris.git && \
-    cd audiveris && \
-    ./gradlew build && \
-    mkdir /audiveris-extract && \
+RUN git clone --branch development https://github.com/Audiveris/audiveris.git
+
+WORKDIR /audiveris
+RUN ./gradlew build
+
+RUN mkdir /audiveris-extract && \
     tar -xvf /audiveris/build/distributions/Audiveris*.tar -C /audiveris-extract && \
     mv /audiveris-extract/Audiveris*/* /audiveris-extract/ && \
     rm -r /audiveris

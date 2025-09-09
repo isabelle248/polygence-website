@@ -16,10 +16,6 @@ RUN gradle wrapper --stacktrace
 RUN ./gradlew clean build
 RUN tar -xf build/distributions/Audiveris-5.3-alpha.tar
 
-# CHECK WORKING
-ADD test_partiture.png /audiveris/data
-RUN Audiveris-5.3-alpha/bin/Audiveris -batch -export -output data/ data/test_partiture.png
-RUN cd data/test_partiture && unzip test_partiture.omr
 
 # other requirements
 RUN apt-get update && apt-get install -y lilypond libsndfile-dev

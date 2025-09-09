@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 
 # Start from Debian base image
-FROM debian:stretch-slim
+FROM debian:bullseye-slim
 
 # Install basic dependencies
 RUN apt-get update && apt-get install -y \

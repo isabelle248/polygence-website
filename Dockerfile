@@ -32,6 +32,8 @@ RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
 RUN apt-get update && apt-get install -y openjdk-21-jdk && \
     rm -rf /var/lib/apt/lists/*
 
+RUN java -version
+
 # Set Java environment variables
 ENV JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64
 ENV PATH=$JAVA_HOME/bin:$PATH

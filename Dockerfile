@@ -1,71 +1,31 @@
-# syntax=docker/dockerfile:1
+FROM gradle:jdk17-alpine
+# FROM gradle:jdk17
 
-# Start from Debian base image
-FROM eclipse-temurin:21-jdk
+# GET AUDIVERIS CODE
+# RUN apk update && apk add git
+RUN apt-get update && apt-get install -y git
+WORKDIR /
+RUN git clone https://github.com/Audiveris/audiveris.git
 
-# Install basic dependencies
-RUN apt-get update && apt-get install -y \
-    curl \
-    wget \
-    git \
-    tesseract-ocr \
-    tesseract-ocr-eng \
-    tesseract-ocr-deu \
-    tesseract-ocr-fra \
-    build-essential \
-    ca-certificates \
-    && rm -rf /var/lib/apt/lists/*
-
-# ---------------------------------------------------
-# Install Node.js (LTS or latest — we’ll use v22.18.0)
-# ---------------------------------------------------
-ENV NODE_VERSION=22.18.0
-
-RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
-    && apt-get install -y nodejs \
-    && npm install -g npm@latest
-
-# ---------------------------------------------------
-# Install Java 17 for Audiveris
-# ---------------------------------------------------
-# Install OpenJDK 21 for Audiveris
-RUN apt-get update && apt-get install -y openjdk-21-jdk && \
-    rm -rf /var/lib/apt/lists/*
-
-RUN java -version
-
-# Set Java environment variables
-ENV JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64
-ENV PATH=$JAVA_HOME/bin:$PATH
-
-
-# ---------------------------------------------------
-# Install & Build Audiveris
-# ---------------------------------------------------
-RUN git clone --branch development https://github.com/Audiveris/audiveris.git
-
+# BUILD
 WORKDIR /audiveris
-RUN ./gradlew build --stacktrace --info
+RUN git checkout 5.2.5
+# RUN apk update && apk add tesseract-ocr tesseract-ocr-data-ita
+RUN apt-get update && apt-get install -y tesseract-ocr tesseract-ocr-ita
+RUN gradle wrapper --stacktrace
+RUN ./gradlew clean build
+RUN tar -xf build/distributions/Audiveris-5.3-alpha.tar
 
-RUN mkdir /audiveris-extract && \
-    tar -xvf /audiveris/build/distributions/Audiveris*.tar -C /audiveris-extract && \
-    mv /audiveris-extract/Audiveris*/* /audiveris-extract/ && \
-    rm -r /audiveris
+# CHECK WORKING
+ADD test_partiture.png /audiveris/data
+RUN Audiveris-5.3-alpha/bin/Audiveris -batch -export -output data/ data/test_partiture.png
+RUN cd data/test_partiture && unzip test_partiture.omr
 
-# ---------------------------------------------------
-# Set working directory for your Node app
-# ---------------------------------------------------
-WORKDIR /usr/src/app
+# other requirements
+RUN apt-get update && apt-get install -y lilypond libsndfile-dev
+# No apk alternative... maybe you must install it with sh but seams do not enought
+# RUN wget https://lilypond.org/download/binaries/linux-64/lilypond-2.22.2-1.linux-64.sh && sh lilypond-2.22.2-1.linux-64.sh
 
-# Copy package.json and install dependencies
-COPY package*.json ./
-RUN npm install --omit=dev
+WORKDIR /data
 
-# Copy the rest of the app
-COPY . .
-
-# ---------------------------------------------------
-# Expose API port & set default command
-# ---------------------------------------------------
-EXPOSE 3000
-CMD ["npm", "start"]
+ENTRYPOINT "/audiveris/Audiveris-5.3-alpha/bin/Audiveris"

@@ -116,6 +116,9 @@ def correct_octave(pred_freq, target_freq):
         pred_freq *= 2
     return pred_freq
 
+# Shift the times closer to zero until the predicted frequencies match best with ground truth
+def shift_times()
+
 def process_note_frequencies(pred_freqs, target_freq):
     # apply correction to each CREPE prediction individually
     corrected = [correct_octave(f, target_freq) for f in pred_freqs if f > 0]

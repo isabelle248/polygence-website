@@ -13,6 +13,8 @@ import json
 import math
 # converter is module in music21 that parses scores from files
 import sys
+from scipy.interpolate import interp1d
+from scipy.signal import correlate
 
 # Suppress TensorFlow / CREPE / matplotlib warnings and logs
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  # Hide TF debug logs
@@ -22,6 +24,31 @@ logging.getLogger("matplotlib").setLevel(logging.WARNING)
 mxl_file = sys.argv[1]
 audio_path = sys.argv[2]
 tempo = int(sys.argv[3])
+
+import matplotlib.pyplot as plt
+
+# plot function
+def plot_alignment(filtered_time_before, filtered_freq, filtered_time_after, gt_times, gt_freqs):
+    plt.figure(figsize=(14, 6))
+
+    # Plot ground truth frequencies as a step function
+    plt.step(gt_times, gt_freqs, where='post', color="red", linewidth=2, label="Ground Truth (MusicXML)")
+
+    # Plot CREPE predictions BEFORE shift
+    plt.scatter(filtered_time_before, filtered_freq, color="blue", s=10, alpha=0.5, label="CREPE Before Alignment")
+
+    # Plot CREPE predictions AFTER shift
+    plt.scatter(filtered_time_after, filtered_freq, color="green", s=10, alpha=0.7, label="CREPE After Alignment")
+
+    # Labels & Legend
+    plt.title("Alignment of CREPE Predictions with Ground Truth")
+    plt.xlabel("Time (s)")
+    plt.ylabel("Frequency (Hz)")
+    plt.grid(True)
+    plt.legend()
+    plt.tight_layout()
+    plt.show()
+
 
 # Load audio with librosa
 # reads audio file from disk, resamples to 16,000 hz
@@ -49,38 +76,6 @@ filtered_time = adjusted_time[adjusted_conf > threshold]
 filtered_freq = adjusted_freq[adjusted_conf > threshold]
 
 
-# # PLOTS
-# # Plot pitch and confidence
-# # Pitch
-# # create new blank figure (14 in wide, 6 in tall)
-# plt.figure(figsize=(14,6))
-
-# # create grid w/ 2 rows, 1 column, subplot #1 (top)
-# plt.subplot(2, 1, 1)
-
-# # draw line graph of detected pitch over time
-# # inputs: time (1D numpy array of time points)
-# #         frequency (1D array same length of predicted pitches)
-# #         label= (adds label for line, use for legend, not y-axis)
-# plt.plot(filtered_time, filtered_freq, label='Frequency (Hz)')
-
-# plt.ylabel("Frequency (Hz)")
-
-# # turn on grid lines
-# plt.grid(True)
-
-# # Confidence
-# plt.subplot(2, 1, 2)
-# plt.plot(time, confidence, label='Confidence', color='orange')
-# plt.ylabel("Confidence")
-# plt.xlabel("Time (s)")
-# plt.grid(True)
-# plt.tight_layout()
-# plt.savefig('/Users/isabellelin/Documents/output_plot.png')
-# # renders + displays plots created
-# plt.show()
-
-
 # Compare predicted frequencies to ground truth
 
 # reads MusicXML file and turns it into Score object with notes, rests, measures
@@ -91,6 +86,110 @@ score = converter.parse(mxl_file)
 
 # flatten hierarchical structure into a simple sequence (?)
 notes_and_rests = score.flat.notesAndRests
+
+# Time alignment (shift CREPE predictions to best match ground truth)
+gt_times_no_rests = []
+gt_freqs_no_rests = []
+
+# TIME SHIFT
+# Find first confident prediction
+first_conf_idx = np.argmax(adjusted_conf > 0.95)
+first_conf_time = filtered_time[first_conf_idx]
+
+# Shift everything so that the first detected note = 0
+filtered_time = filtered_time - first_conf_time
+
+print(f"Shifted CREPE times so first note starts at 0 (shift = {-first_conf_time:.3f} sec)")
+
+
+# OLD TIME SHIFT CODE
+# # store ground truth times and frequencies in arrays
+# for n in notes_and_rests:
+#     if n.isRest:
+#         continue
+
+#     if n.isChord:
+#         continue
+
+#     note_start = (n.offset / tempo) * 60
+#     freq = float(n.pitch.frequency)
+
+#     if not np.isnan(freq):
+#         gt_times_no_rests.append(note_start)
+#         gt_freqs_no_rests.append(freq)
+
+
+# # Convert to NumPy arrays for consistency
+# gt_times_no_rests = np.array(gt_times_no_rests, dtype=np.float64)
+# gt_freqs_no_rests = np.array(gt_freqs_no_rests, dtype=np.float64)
+
+# # Remove any NaNs, None, or invalid numbers
+# valid_mask = np.isfinite(gt_times_no_rests) & np.isfinite(gt_freqs_no_rests)
+# gt_times_no_rests = gt_times_no_rests[valid_mask]
+# gt_freqs_no_rests = gt_freqs_no_rests[valid_mask]
+
+# # Sort by time to ensure strictly increasing x-values for interp1d
+# sort_idx = np.argsort(gt_times_no_rests)
+# gt_times_no_rests = gt_times_no_rests[sort_idx]
+# gt_freqs_no_rests = gt_freqs_no_rests[sort_idx]
+
+
+# print("gt_times_no_rests dtype:", np.array(gt_times_no_rests).dtype)
+# print("gt_freqs_no_rests dtype:", np.array(gt_freqs_no_rests).dtype)
+
+# print("First few times:", gt_times_no_rests[:10])
+# print("First few freqs:", gt_freqs_no_rests[:10])
+
+# initial_latency = 0.5 
+# filtered_time = filtered_time + initial_latency
+
+
+# # create function to perform step interpolation
+# gt_interp = interp1d(
+#     gt_times_no_rests,
+#     gt_freqs_no_rests,
+#     kind="previous",
+#     bounds_error=False,
+#     fill_value="extrapolate"
+# )
+
+
+
+# # resample ground truth to match with CREPE time stamps
+# gt_resampled = gt_interp(filtered_time)
+
+# # use cross-correlation to find best time shift
+# # remove DC offset (constant bias), subtract mean to "center" around zero
+# crepe_centered = filtered_freq - np.mean(filtered_freq)
+# gt_centered = gt_resampled - np.mean(gt_resampled)
+
+# # compute cross correlation
+# corr = np.correlate(crepe_centered, gt_centered, mode="full")
+
+# # shift back to centered lag
+# lags = np.arange(-len(gt_centered) + 1, len(crepe_centered))
+
+# # convert lag to seconds
+# time_step = filtered_time[1] - filtered_time[0]
+# time_lags = lags * time_step
+
+# # restrict search
+# valid_idx = time_lags >= 0
+# corr = corr[valid_idx]
+# time_lags = time_lags[valid_idx]
+
+# # Save CREPE times BEFORE shifting
+# filtered_time_before = filtered_time.copy()
+
+# # apply time shift (update crepe timestamps)
+# best_shift = float(time_lags[np.argmax(corr)])
+# filtered_time = filtered_time + best_shift
+
+# print(f"Applied time shift: {best_shift:.3f} seconds")
+
+# # Visualize alignment
+# plot_alignment(filtered_time_before, filtered_freq, filtered_time, gt_times_no_rests, gt_freqs_no_rests)
+
 
 # create empty list, each item is a tuple (offset, note_frequency)
 note_data = []
@@ -110,14 +209,13 @@ def correct_octave(pred_freq, target_freq):
     if pred_freq <= 0:
         return pred_freq
 
-    while pred_freq > target_freq * 2:
-        pred_freq /= 2
-    while pred_freq < target_freq / 2:
-        pred_freq *= 2
-    return pred_freq
+    ratio = round(pred_freq / target_freq)
+    if ratio == 0:
+        ratio = 1
+    
+    corrected = pred_freq / ratio
+    return corrected, ratio
 
-# Shift the times closer to zero until the predicted frequencies match best with ground truth
-def shift_times()
 
 def process_note_frequencies(pred_freqs, target_freq):
     # apply correction to each CREPE prediction individually
@@ -276,6 +374,7 @@ def plot_pitch_comparison(crepe_times, crepe_freqs, note_times, note_freqs, corr
     plt.show()
 
 plot_pitch_comparison(filtered_time, filtered_freq, all_times, note_freqs, all_times, predicted_freqs)
+
 
 for n in notes_and_rests:
     if n.isRest:

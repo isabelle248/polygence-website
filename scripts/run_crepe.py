@@ -209,12 +209,11 @@ def correct_octave(pred_freq, target_freq):
     if pred_freq <= 0:
         return pred_freq
 
-    ratio = round(pred_freq / target_freq)
-    if ratio == 0:
-        ratio = 1
-    
-    corrected = pred_freq / ratio
-    return corrected, ratio
+    while pred_freq > target_freq * 4:
+        pred_freq /= 2
+    while pred_freq < target_freq / 4:
+        pred_freq *= 2
+    return pred_freq
 
 
 def process_note_frequencies(pred_freqs, target_freq):
